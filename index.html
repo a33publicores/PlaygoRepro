@@ -208,7 +208,8 @@ video.load();
 try {
     await video.play();
 } catch (err) {
-    console.log("Autoplay bloqueado:", err);
+    console.log("Autoplay bloqueado. Haz un clic en la pantalla.");
+    estado.textContent = "Haz clic en cualquier parte para activar el audio";
 }
         }
     } catch (err) {
@@ -239,18 +240,28 @@ video.addEventListener("ended", async function () {
     }, 3000);
 });
 
-    document.addEventListener("click", async function () {
-    video.removeAttribute("muted");
-    video.muted = false;
-    video.defaultMuted = false;
-    video.volume = 1.0;
+    let autoplayDesbloqueado = false;
+
+async function desbloquearAutoplay() {
+    if (autoplayDesbloqueado) return;
+
+    autoplayDesbloqueado = true;
 
     try {
+        video.muted = false;
+        video.defaultMuted = false;
+        video.volume = 1.0;
         await video.play();
+        console.log("Autoplay y audio desbloqueados.");
     } catch (e) {
-        console.log("No se pudo activar el audio:", e);
+        console.log("No se pudo desbloquear:", e);
+        autoplayDesbloqueado = false;
     }
-}, { once: true });
+}
+
+document.addEventListener("click", desbloquearAutoplay, { once: true });
+document.addEventListener("touchstart", desbloquearAutoplay, { once: true });
+document.addEventListener("keydown", desbloquearAutoplay, { once: true });
 
 function renderPlaylist(data) {
     if (!data || !data.actual) {
