@@ -1,120 +1,242 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>PlayBar Go - Reproductor</title>
 
 <style>
-html, body {
-    margin: 0;
-    padding: 0;
-    background: #000;
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-    font-family: Arial, sans-serif;
-}
+    html, body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        background: #000;
+        overflow: hidden;
+        font-family: Arial, sans-serif;
+        color: #fff;
+    }
 
-#video {
-    width: 100vw;
-    height: 100vh;
-    background: #000;
-}
+    #video {
+        width: 100vw;
+        height: 100vh;
+        background: #000;
+        object-fit: contain;
+    }
 
-#info {
-    position: absolute;
-    top: 20px;
-    left: 20px;
-    background: rgba(0,0,0,0.75);
-    color: #fff;
-    padding: 15px 20px;
-    border-radius: 12px;
-    font-size: 18px;
-    font-weight: bold;
-    z-index: 999;
-}
+    #info {
+        position: fixed;
+        top: 20px;
+        left: 20px;
+        z-index: 9999;
+        background: rgba(0,0,0,0.75);
+        padding: 15px 20px;
+        border-radius: 12px;
+        max-width: 500px;
+        box-shadow: 0 0 20px rgba(0,0,0,0.4);
+    }
+
+    #actual {
+        font-size: 28px;
+        font-weight: bold;
+        margin-bottom: 8px;
+    }
+
+    #siguiente {
+        font-size: 18px;
+        color: #00d4ff;
+    }
+
+    #error {
+        position: fixed;
+        bottom: 20px;
+        left: 20px;
+        z-index: 9999;
+        background: rgba(255, 0, 0, 0.85);
+        padding: 10px 15px;
+        border-radius: 8px;
+        display: none;
+        max-width: 600px;
+        font-size: 14px;
+    }
 </style>
 </head>
 <body>
 
-<div id="info">Cargando...</div>
+<div id="info">
+    <div id="actual">Cargando...</div>
+    <div id="siguiente"></div>
+</div>
+
+<div id="error"></div>
 
 <video
     id="video"
-    controls
     autoplay
+    controls
+    playsinline
     muted
-    playsinline>
-</video>
+></video>
 
 <script>
-const API_URL = "https://playbargo-player-jukebox-repro-propio.up.railway.app";
+/* ==========================================================
+   CONFIGURACIÓN
+   ========================================================== */
+const BACKEND = "https://playbargo-player-jukebox-repro-propio.up.railway.app";
 const CLIENTE = "A33";
 
+/* ==========================================================
+   ELEMENTOS
+   ========================================================== */
 const video = document.getElementById("video");
-const info = document.getElementById("info");
+const actual = document.getElementById("actual");
+const siguiente = document.getElementById("siguiente");
+const errorBox = document.getElementById("error");
 
-let videoActual = "";
+let ultimoVideoId = null;
 
+/* ==========================================================
+   MOSTRAR ERROR
+   ========================================================== */
+function mostrarError(msg) {
+    console.error(msg);
+    errorBox.style.display = "block";
+    errorBox.textContent = msg;
+}
+
+/* ==========================================================
+   CARGAR ESTADO DESDE RAILWAY
+   ========================================================== */
 async function cargarEstado() {
     try {
-        const respuesta = await fetch(
-            ${API_URL}/player/status?cliente=${CLIENTE}
-        );
+        const url = ${BACKEND}/player/status?cliente=${encodeURIComponent(CLIENTE)};
+        console.log("Consultando:", url);
 
-        const data = await respuesta.json();
+        const resp = await fetch(url);
+        const data = await resp.json();
+
+        console.log("Respuesta backend:", data);
 
         if (!data.ok) {
-            info.textContent = data.mensaje || "Esperando canciones...";
+            actual.textContent = "No hay canciones";
+            siguiente.textContent = "";
             return;
         }
 
-        const actual = data.actual;
-
-        if (!actual || !actual.video_url) {
-            info.textContent = "No hay video disponible";
+        if (!data.actual) {
+            actual.textContent = "Sin canción actual";
+            siguiente.textContent = "";
             return;
         }
 
-        if (actual.videoId !== videoActual) {
-            videoActual = actual.videoId;
+        // Mostrar título actual
+        actual.textContent = "🎵 " + (data.actual.titulo || "Sin título");
 
-            info.textContent = actual.titulo || "Reproduciendo...";
+        // Mostrar siguiente
+        if (data.siguiente && data.siguiente.titulo) {
+            siguiente.textContent = "⏭️ Sigue: " + data.siguiente.titulo;
+        } else {
+            siguiente.textContent = "";
+        }
 
-            video.src = actual.video_url;
+        // URL del video
+        const videoUrl = data.actual.video_url;
+        const videoId = data.actual.videoId || data.actual.video_id || videoUrl;
+
+        if (!videoUrl) {
+            mostrarError("La respuesta no contiene video_url.");
+            return;
+        }
+
+        // Si cambió el video, cargarlo
+        if (ultimoVideoId !== videoId) {
+            ultimoVideoId = videoId;
+
+            console.log("Cargando video:", videoUrl);
+
+            video.pause();
+            video.src = videoUrl;
             video.load();
 
+            // Primero intenta reproducir en mute
             try {
                 await video.play();
-            } catch (e) {
-                console.log("Autoplay bloqueado:", e);
+
+                // Quitar mute después de iniciar
+                setTimeout(() => {
+                    video.muted = false;
+                }, 1000);
+
+            } catch (err) {
+                mostrarError("No se pudo reproducir automáticamente: " + err.message);
             }
         }
-    } catch (error) {
-        console.error("Error:", error);
-        info.textContent = "Error de conexión";
+
+    } catch (err) {
+        mostrarError("Error al consultar backend: " + err.message);
     }
 }
 
-video.addEventListener("ended", async () => {
+/* ==========================================================
+   AVANZAR A SIGUIENTE
+   ========================================================== */
+async function siguienteCancion() {
     try {
-        await fetch(
-            ${API_URL}/player/next?cliente=${CLIENTE},
-            { method: "POST" }
-        );
-    } catch (e) {
-        console.error("Error avanzando:", e);
-    }
+        console.log("Solicitando siguiente canción...");
 
-    setTimeout(cargarEstado, 1000);
+        await fetch(${BACKEND}/player/next, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                cliente: CLIENTE
+            })
+        });
+
+        // Esperar 2 segundos y recargar
+        setTimeout(cargarEstado, 2000);
+
+    } catch (err) {
+        mostrarError("Error al avanzar: " + err.message);
+    }
+}
+
+/* ==========================================================
+   EVENTOS
+   ========================================================== */
+
+// Cuando termina el video
+video.addEventListener("ended", () => {
+    console.log("Video finalizado.");
+    siguienteCancion();
 });
 
-// Verificar cada 5 segundos
-setInterval(cargarEstado, 5000);
+// Si ocurre error de carga del video
+video.addEventListener("error", () => {
+    mostrarError("No se pudo cargar el archivo de video.");
+});
+
+// Clic en cualquier parte para habilitar audio
+document.addEventListener("click", async () => {
+    try {
+        video.muted = false;
+        await video.play();
+        errorBox.style.display = "none";
+    } catch (e) {
+        console.log("Esperando interacción del usuario.");
+    }
+});
+
+/* ==========================================================
+   INICIO
+   ========================================================== */
 
 // Primera carga
 cargarEstado();
+
+// Consultar cada 5 segundos
+setInterval(cargarEstado, 5000);
 </script>
 
 </body>
