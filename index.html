@@ -107,14 +107,25 @@ html, body {
 </head>
 <body>
 
-<div id="estado">Cargando...</div>
+<div id="contenedor">
 
-<video
-    id="video"
-    controls
-    autoplay
-    playsinline>
-</video>
+    <div id="video-container">
+        <div id="estado">Cargando...</div>
+
+        <video
+            id="video"
+            controls
+            autoplay
+            playsinline>
+        </video>
+    </div>
+
+    <div id="playlist">
+        <h2>🎵 Playlist</h2>
+        <div id="playlist-items"></div>
+    </div>
+
+</div>
 
 <script>
 const API_URL = "https://playbargo-player-jukebox-repro-propio.up.railway.app";
@@ -122,6 +133,7 @@ const CLIENTE = "A33";
 
 const video = document.getElementById("video");
 const estado = document.getElementById("estado");
+const playlistItems = document.getElementById("playlist-items");
 
 let videoActual = "";
 
@@ -132,6 +144,7 @@ async function cargarEstado() {
         );
 
         const data = await response.json();
+        renderPlaylist(data);
 
         if (!data.ok) {
             estado.textContent = data.mensaje || "Esperando canciones...";
@@ -219,6 +232,35 @@ video.addEventListener("ended", async function () {
         console.log("No se pudo activar el audio:", e);
     }
 }, { once: true });
+
+function renderPlaylist(data) {
+    if (!data || !data.actual) {
+        playlistItems.innerHTML = "";
+        return;
+    }
+
+    let html = "";
+
+    // Canción actual
+    html += `
+        <div class="playlist-item actual">
+            <div class="titulo">▶️ ${data.actual.titulo || 'Reproduciendo...'}</div>
+            <div class="estado">En reproducción</div>
+        </div>
+    `;
+
+    // Siguiente canción
+    if (data.siguiente) {
+        html += `
+            <div class="playlist-item">
+                <div class="titulo">⏭️ ${data.siguiente.titulo || 'Siguiente'}</div>
+                <div class="estado">En cola</div>
+            </div>
+        `;
+    }
+
+    playlistItems.innerHTML = html;
+}
 
 setInterval(cargarEstado, 15000);
 cargarEstado();
