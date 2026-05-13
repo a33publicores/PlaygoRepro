@@ -100,26 +100,25 @@ async function cargarEstado() {
     }
 }
 
-video.addEventListener("ended", async function () {
-    estado.textContent = "Cargando siguiente canción...";
-    videoActual = "";   // Fuerza a detectar un nuevo video
-
+video.addEventListener("ended", async () => {
     try {
-        // Notifica al backend que debe avanzar
-        await fetch(
-            API_URL + "/player/next?cliente=" + CLIENTE,
-            {
-                method: "POST"
-            }
-        );
-    } catch (err) {
-        console.error("Error avanzando:", err);
+        await fetch(${API_URL}/player/finalizar, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                cliente: CLIENTE
+            })
+        });
+    } catch (e) {
+        console.error("Error al finalizar:", e);
     }
 
-    // Espera 3 segundos para que el backend procese
-    setTimeout(async function () {
-        await cargarEstado();
-    }, 3000);
+    // Esperar un momento y cargar la siguiente canción
+    setTimeout(() => {
+        cargarCancion();
+    }, 2000);
 });
 
 setInterval(cargarEstado, 5000);
