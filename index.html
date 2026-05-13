@@ -73,6 +73,27 @@ html, body {
     opacity: 0.7;
 }
 
+.acciones {
+    margin-top: 10px;
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.btn-accion {
+    border: none;
+    background: rgba(255,255,255,0.08);
+    color: #fff;
+    padding: 6px 8px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.btn-accion:hover {
+    background: rgba(255,255,255,0.18);
+}
+
 #estado {
     position: absolute;
     top: 20px;
@@ -272,17 +293,19 @@ function renderPlaylist(data) {
     let html = "";
 
     // Canción actual
-    html += `
+html += `
     <div class="playlist-item actual">
-        <img
-            src="https://img.youtube.com/vi/${data.actual.videoId}/hqdefault.jpg"
-            class="thumb"
-        >
+        <div class="miniatura">
+            <img src="https://img.youtube.com/vi/${data.actual.videoId}/mqdefault.jpg">
+        </div>
         <div class="info">
-            <div class="titulo">
-                ▶️ ${data.actual.titulo || 'Reproduciendo...'}
+            <div class="titulo">▶️ ${data.actual.titulo || 'Reproduciendo...'}</div>
+            <div class="estado">En reproducción</div>
+
+            <div class="acciones">
+                <button class="btn-accion" onclick="accionPlaylist('repetir', 0)">🔁</button>
+                <button class="btn-accion" onclick="accionPlaylist('eliminar', 0)">🗑️</button>
             </div>
-            <div class="estado-item">En reproducción</div>
         </div>
     </div>
 `;
@@ -291,23 +314,64 @@ function renderPlaylist(data) {
     if (data.cola && data.cola.length > 0) {
     data.cola.forEach((item, index) => {
         html += `
-            <div class="playlist-item">
-                <img
-                    src="https://img.youtube.com/vi/${item.videoId}/hqdefault.jpg"
-                    class="thumb"
-                >
-                <div class="info">
-                    <div class="titulo">
-                        ${index + 1}. ${item.titulo}
-                    </div>
-                    <div class="estado-item">En cola</div>
-                </div>
+    <div class="playlist-item">
+        <div class="miniatura">
+            <img src="https://img.youtube.com/vi/${item.videoId}/mqdefault.jpg">
+        </div>
+        <div class="info">
+            <div class="titulo">${index + 1}. ${item.titulo}</div>
+            <div class="estado">En cola</div>
+
+            <div class="acciones">
+                <button class="btn-accion"
+                    onclick="accionPlaylist('subir', ${index + 1})">⬆️</button>
+
+                <button class="btn-accion"
+                    onclick="accionPlaylist('bajar', ${index + 1})">⬇️</button>
+
+                <button class="btn-accion"
+                    onclick="accionPlaylist('repetir', ${index + 1})">🔁</button>
+
+                <button class="btn-accion"
+                    onclick="accionPlaylist('eliminar', ${index + 1})">🗑️</button>
             </div>
-        `;
+        </div>
+    </div>
+`;
     });
 }
 
     playlistItems.innerHTML = html;
+}
+
+async function accionPlaylist(accion, posicion) {
+    try {
+        const response = await fetch(
+            API_URL + "/player/action",
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    cliente: CLIENTE,
+                    accion: accion,
+                    posicion: posicion
+                })
+            }
+        );
+
+        const data = await response.json();
+
+        if (data.ok) {
+            await cargarEstado();
+        } else {
+            alert(data.mensaje || "No se pudo ejecutar la acción");
+        }
+    } catch (err) {
+        console.error(err);
+        alert("Error ejecutando acción");
+    }
 }
 
 setInterval(cargarEstado, 15000);
