@@ -36,7 +36,7 @@ html, body {
 }
 
 #playlist {
-    width: 380px;
+    width: 420px;
     background: #111;
     color: #fff;
     overflow-y: auto;
@@ -52,25 +52,64 @@ html, body {
 }
 
 .playlist-item {
-    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
     border-bottom: 1px solid rgba(255,255,255,0.06);
 }
 
 .playlist-item.actual {
-    background: rgba(255, 0, 0, 0.12);
+    background: rgba(255,0,0,0.12);
     border-left: 4px solid #ff0000;
 }
 
-.playlist-item .titulo {
-    font-size: 15px;
+.thumb {
+    width: 120px;
+    height: 68px;
+    object-fit: cover;
+    border-radius: 8px;
+    flex-shrink: 0;
+}
+
+.info {
+    flex: 1;
+    min-width: 0;
+}
+
+.titulo {
+    font-size: 14px;
     font-weight: bold;
     line-height: 1.35;
 }
 
-.playlist-item .estado {
+.estado-item {
     margin-top: 6px;
     font-size: 12px;
     opacity: 0.7;
+}
+
+.acciones {
+    display: none;
+    flex-direction: column;
+    gap: 4px;
+}
+
+body.modo-dj .acciones {
+    display: flex;
+}
+
+.acciones button {
+    background: #222;
+    color: #fff;
+    border: none;
+    padding: 6px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.acciones button:hover {
+    background: #444;
 }
 
 #estado {
@@ -86,10 +125,47 @@ html, body {
     font-weight: bold;
 }
 
-/* Vista móvil */
+#panel-superior {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+#btnDJ {
+    background: #111;
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.2);
+    padding: 10px 14px;
+    border-radius: 10px;
+    cursor: pointer;
+}
+
+#control-volumen {
+    display: none;
+    background: rgba(0,0,0,0.75);
+    padding: 10px;
+    border-radius: 10px;
+}
+
+body.modo-dj #control-volumen {
+    display: block;
+}
+
+#control-volumen input {
+    width: 140px;
+}
+
 @media (max-width: 900px) {
     #contenedor {
         flex-direction: column;
+    }
+
+    #video-container {
+        height: 65vh;
     }
 
     #playlist {
@@ -99,8 +175,9 @@ html, body {
         border-top: 1px solid rgba(255,255,255,0.1);
     }
 
-    #video-container {
-        height: 65vh;
+    .thumb {
+        width: 90px;
+        height: 50px;
     }
 }
 </style>
@@ -110,7 +187,15 @@ html, body {
 <div id="contenedor">
 
     <div id="video-container">
+
         <div id="estado">Cargando...</div>
+
+        <div id="panel-superior">
+            <button id="btnDJ" onclick="abrirDJ()">🎛️ DJ</button>
+            <div id="control-volumen">
+                🔊 <input type="range" min="0" max="1" step="0.01" value="1" oninput="video.volume=this.value">
+            </div>
+        </div>
 
         <video
             id="video"
@@ -118,6 +203,7 @@ html, body {
             autoplay
             playsinline>
         </video>
+
     </div>
 
     <div id="playlist">
@@ -136,6 +222,11 @@ const estado = document.getElementById("estado");
 const playlistItems = document.getElementById("playlist-items");
 
 let videoActual = "";
+let audioHabilitado = false;
+
+function thumbnail(videoId) {
+    return https://img.youtube.com/vi/${videoId}/hqdefault.jpg;
+}
 
 async function cargarEstado() {
     try {
@@ -144,6 +235,7 @@ async function cargarEstado() {
         );
 
         const data = await response.json();
+
         renderPlaylist(data);
 
         if (!data.ok) {
@@ -161,36 +253,23 @@ async function cargarEstado() {
 
         if (id !== videoActual) {
             videoActual = id;
+            estado.textContent = actual.titulo || "Reproduciendo...";
 
-            estado.textContent =
-                actual.titulo || "Reproduciendo...";
+            video.pause();
+            video.removeAttribute("src");
+            video.load();
 
-// Reiniciar completamente el reproductor
-video.pause();
-video.removeAttribute("src");
-video.load();
+            video.src = actual.video_url;
+            video.controls = true;
+            video.volume = 1;
+            video.muted = !audioHabilitado;
+            video.load();
 
-// Crear una fuente explícita MP4
-video.innerHTML = "";
-const source = document.createElement("source");
-source.src = actual.video_url;
-source.type = "video/mp4";
-video.appendChild(source);
-
-// Configuración
-video.controls = true;
-video.volume = 1.0;
-video.muted = false;
-video.defaultMuted = false;
-
-// Cargar y reproducir
-video.load();
-
-try {
-    await video.play();
-} catch (err) {
-    console.log("Autoplay bloqueado:", err);
-}
+            try {
+                await video.play();
+            } catch (err) {
+                console.log("Autoplay bloqueado:", err);
+            }
         }
     } catch (err) {
         console.error(err);
@@ -200,10 +279,9 @@ try {
 
 video.addEventListener("ended", async function () {
     estado.textContent = "Cargando siguiente canción...";
-    videoActual = "";   // Fuerza a detectar un nuevo video
+    videoActual = "";
 
     try {
-        // Notifica al backend que debe avanzar
         await fetch(
             API_URL + "/player/next?cliente=" + CLIENTE,
             {
@@ -214,24 +292,24 @@ video.addEventListener("ended", async function () {
         console.error("Error avanzando:", err);
     }
 
-    // Espera 3 segundos para que el backend procese
-    setTimeout(async function () {
-        await cargarEstado();
-    }, 3000);
+    setTimeout(cargarEstado, 3000);
 });
 
-    document.addEventListener("click", async function () {
-    video.removeAttribute("muted");
+async function habilitarAudio() {
+    audioHabilitado = true;
     video.muted = false;
     video.defaultMuted = false;
-    video.volume = 1.0;
+    video.volume = 1;
 
     try {
         await video.play();
     } catch (e) {
         console.log("No se pudo activar el audio:", e);
     }
-}, { once: true });
+}
+
+window.addEventListener("click", habilitarAudio, { once: true });
+window.addEventListener("touchstart", habilitarAudio, { once: true });
 
 function renderPlaylist(data) {
     if (!data || !data.actual) {
@@ -241,28 +319,96 @@ function renderPlaylist(data) {
 
     let html = "";
 
-    // Canción actual
     html += `
         <div class="playlist-item actual">
-            <div class="titulo">▶️ ${data.actual.titulo || 'Reproduciendo...'}</div>
-            <div class="estado">En reproducción</div>
+            <img src="${thumbnail(data.actual.videoId)}" class="thumb">
+            <div class="info">
+                <div class="titulo">▶️ ${data.actual.titulo || 'Reproduciendo...'}</div>
+                <div class="estado-item">En reproducción</div>
+            </div>
         </div>
     `;
 
-    // Siguiente canción
-    if (data.siguiente) {
+    (data.cola || []).forEach((item, index) => {
+        const fila = item.fila || (index + 3);
+
         html += `
             <div class="playlist-item">
-                <div class="titulo">⏭️ ${data.siguiente.titulo || 'Siguiente'}</div>
-                <div class="estado">En cola</div>
+                <img src="${thumbnail(item.videoId)}" class="thumb">
+                <div class="info">
+                    <div class="titulo">${index + 1}. ${item.titulo}</div>
+                    <div class="estado-item">En cola</div>
+                </div>
+                <div class="acciones">
+                    <button onclick="subir(${fila})">⬆️</button>
+                    <button onclick="bajar(${fila})">⬇️</button>
+                    <button onclick="repetir(${fila})">🔁</button>
+                    <button onclick="eliminarCancion(${fila})">🗑️</button>
+                </div>
             </div>
         `;
-    }
+    });
 
     playlistItems.innerHTML = html;
 }
 
+async function eliminarCancion(fila) {
+    await llamarAPI("/player/delete", { fila });
+}
+
+async function repetir(fila) {
+    await llamarAPI("/player/repeat", { fila });
+}
+
+async function subir(fila) {
+    await llamarAPI("/player/move", {
+        origen: fila,
+        destino: fila - 1
+    });
+}
+
+async function bajar(fila) {
+    await llamarAPI("/player/move", {
+        origen: fila,
+        destino: fila + 1
+    });
+}
+
+async function llamarAPI(endpoint, datos) {
+    try {
+        await fetch(API_URL + endpoint, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                cliente: CLIENTE,
+                ...datos
+            })
+        });
+    } catch (e) {
+        console.error(e);
+    }
+
+    setTimeout(cargarEstado, 1000);
+}
+
+function abrirDJ() {
+    const usuario = prompt("Usuario DJ:");
+    const clave = prompt("Contraseña:");
+
+    if (usuario === CLIENTE && clave === "1234") {
+        document.body.classList.add("modo-dj");
+        alert("Modo DJ activado");
+    } else {
+        alert("Credenciales incorrectas");
+    }
+}
+
+// Consultar cada 15 segundos
 setInterval(cargarEstado, 15000);
+
+// Carga inicial
 cargarEstado();
 </script>
 
