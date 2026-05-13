@@ -85,10 +85,14 @@ async function cargarEstado() {
 
             video.src = actual.video_url;
             video.load();
-            video.muted=false;
-            video.defaultMuted=false;
-            video.volume=1;
-            video.controls=true
+
+            video.removeAttribute("muted");
+            video.muted = false;
+            video.defaultMuted = false;
+            video.volume = 1.0;
+            video.controls = true;
+
+            video.setAttribute("autoplay", "true");
 
             try {
                 await video.play();
@@ -125,9 +129,10 @@ video.addEventListener("ended", async function () {
 });
 
     document.addEventListener("click", async function () {
+    video.removeAttribute("muted");
     video.muted = false;
     video.defaultMuted = false;
-    video.volume = 1;
+    video.volume = 1.0;
 
     try {
         await video.play();
