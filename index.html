@@ -3,129 +3,155 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PlayBar Go Player</title>
+<title>PlayBar Go Reproductor</title>
 
 <style>
 body {
-  margin: 0;
-  background: #000;
-  color: #fff;
-  font-family: Arial, sans-serif;
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
+    margin: 0;
+    background: #000;
+    color: #fff;
+    font-family: Arial, sans-serif;
+    overflow: hidden;
 }
 
-#header {
-  padding: 15px;
-  background: linear-gradient(90deg, #00E5FF, #3B82F6, #A855F7);
-  text-align: center;
-  font-size: 24px;
-  font-weight: bold;
+#video {
+    width: 100vw;
+    height: 100vh;
+    object-fit: contain;
+    background: #000;
 }
 
-#videoContainer {
-  flex: 1;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background: #000;
+.info {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    z-index: 999;
+    background: rgba(0,0,0,0.7);
+    padding: 15px 20px;
+    border-radius: 12px;
+    max-width: 500px;
 }
 
-video {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
+.actual {
+    font-size: 26px;
+    font-weight: bold;
+    margin-bottom: 10px;
 }
 
-#footer {
-  padding: 15px;
-  background: #111;
-  text-align: center;
-}
-
-#actual {
-  font-size: 22px;
-  font-weight: bold;
-}
-
-#siguiente {
-  margin-top: 10px;
-  color: #aaa;
+.siguiente {
+    font-size: 18px;
+    color: #00d4ff;
 }
 </style>
 </head>
 <body>
 
-<div id="header">🎵 PlayBar Go</div>
-
-<div id="videoContainer">
-  <video id="player" controls autoplay></video>
+<div class="info">
+    <div class="actual" id="tituloActual">Cargando...</div>
+    <div class="siguiente" id="tituloSiguiente"></div>
 </div>
 
-<div id="footer">
-  <div id="actual">Cargando...</div>
-  <div id="siguiente"></div>
-</div>
+<video
+    id="video"
+    autoplay
+    controls
+    playsinline
+></video>
 
 <script>
-const BACKEND = "https://playbargo-player-jukebox-repro-propio.up.railway.app";
+const BACKEND =
+  "https://playbargo-player-jukebox-repro-propio.up.railway.app";
 
-const player = document.getElementById("player");
-const actual = document.getElementById("actual");
-const siguiente = document.getElementById("siguiente");
+const CLIENTE = "A33";
 
-let currentVideoId = null;
+const video = document.getElementById("video");
+const tituloActual = document.getElementById("tituloActual");
+const tituloSiguiente = document.getElementById("tituloSiguiente");
 
-function obtenerCliente() {
-  const partes = window.location.pathname.split("/");
-  return partes[partes.length - 1] || "A33";
+let videoActualId = null;
+
+// Cargar estado desde Railway
+async function cargarEstado() {
+    try {
+        const res = await fetch(
+            ${BACKEND}/player/status?cliente=${CLIENTE}
+        );
+        const data = await res.json();
+
+        if (!data.ok) return;
+        if (!data.actual) return;
+
+        // Mostrar títulos
+        tituloActual.textContent =
+            "🎵 " + (data.actual.titulo || "Sin título");
+
+        tituloSiguiente.textContent =
+            data.siguiente
+                ? "⏭️ Sigue: " + data.siguiente.titulo
+                : "";
+
+        // Si cambió el video, cargarlo
+        if (videoActualId !== data.actual.videoId) {
+            videoActualId = data.actual.videoId;
+            video.src = data.actual.video_url;
+            video.load();
+
+            try {
+                await video.play();
+            } catch (e) {
+                console.log("Autoplay bloqueado:", e);
+            }
+        }
+
+        // Control DJ
+        if (data.control) {
+            if (data.control.action === "pause") {
+                video.pause();
+            }
+
+            if (data.control.action === "play") {
+                try { await video.play(); } catch (e) {}
+            }
+
+            if (data.control.action === "next") {
+                await siguienteCancion();
+            }
+        }
+
+    } catch (err) {
+        console.error("Error:", err);
+    }
 }
 
-const cliente = obtenerCliente();
+// Avisar al backend que terminó el video
+async function siguienteCancion() {
+    try {
+        await fetch(${BACKEND}/player/next, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                cliente: CLIENTE
+            })
+        });
 
-async function actualizarEstado() {
-  try {
-    const res = await fetch(${BACKEND}/player/status?cliente=${cliente});
-    const data = await res.json();
+        // Esperar y recargar
+        setTimeout(cargarEstado, 2000);
 
-    if (!data.ok) return;
-
-    actual.textContent = "🎵 " + (data.actual?.titulo || "Sin reproducción");
-
-    if (data.siguiente?.titulo) {
-      siguiente.textContent = "⏭️ Próxima: " + data.siguiente.titulo;
-    } else {
-      siguiente.textContent = "";
+    } catch (err) {
+        console.error("Error avanzando:", err);
     }
-
-    if (data.actual && data.actual.video_url && data.actual.videoId !== currentVideoId) {
-      currentVideoId = data.actual.videoId;
-      player.src = data.actual.video_url;
-      await player.play().catch(() => {});
-    }
-
-  } catch (error) {
-    console.error(error);
-  }
 }
 
-player.addEventListener("ended", async () => {
-  try {
-    await fetch(${BACKEND}/player/ended, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ cliente })
-    });
-  } catch (error) {
-    console.error(error);
-  }
+// Cuando termina el video
+video.addEventListener("ended", siguienteCancion);
 
-  setTimeout(actualizarEstado, 1000);
-});
+// Consultar estado cada 5 segundos
+setInterval(cargarEstado, 5000);
 
-setInterval(actualizarEstado, 5000);
-actualizarEstado();
+// Primera carga
+cargarEstado();
 </script>
 
 </body>
