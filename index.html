@@ -376,15 +376,16 @@ async function bajar(fila) {
 
 async function llamarAPI(endpoint, datos) {
     try {
+        const payload = Object.assign({
+            cliente: CLIENTE
+        }, datos || {});
+
         await fetch(API_URL + endpoint, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
             },
-            body: JSON.stringify({
-                cliente: CLIENTE,
-                ...datos
-            })
+            body: JSON.stringify(payload)
         });
     } catch (e) {
         console.error(e);
