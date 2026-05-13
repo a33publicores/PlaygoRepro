@@ -83,40 +83,29 @@ async function cargarEstado() {
             estado.textContent =
                 actual.titulo || "Reproduciendo...";
 
-// Reinicia completamente el reproductor
+// Reiniciar completamente el reproductor
 video.pause();
 video.removeAttribute("src");
 video.load();
 
-// Asigna la nueva URL
-video.src = actual.video_url;
+// Crear una fuente explícita MP4
+video.innerHTML = "";
+const source = document.createElement("source");
+source.src = actual.video_url;
+source.type = "video/mp4";
+video.appendChild(source);
 
-// Configuración de audio
+// Configuración
 video.controls = true;
+video.volume = 1.0;
 video.muted = false;
 video.defaultMuted = false;
-video.volume = 1.0;
 
-// Recarga el recurso
+// Cargar y reproducir
 video.load();
 
-// Primero inicia silenciado para que el autoplay sea permitido
-video.muted = true;
-
 try {
-    const playPromise = video.play();
-
-    if (playPromise !== undefined) {
-        await playPromise;
-    }
-
-    // Forzar nuevamente el audio después del play
-    setTimeout(() => {
-        video.muted = false;
-        video.defaultMuted = false;
-        video.volume = 1.0;
-    }, 1000);
-
+    await video.play();
 } catch (err) {
     console.log("Autoplay bloqueado:", err);
 }
