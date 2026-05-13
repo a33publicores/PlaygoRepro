@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PlayBar Go Player</title>
+
+<style>
+body {
+  margin: 0;
+  background: #000;
+  color: #fff;
+  font-family: Arial, sans-serif;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+#header {
+  padding: 15px;
+  background: linear-gradient(90deg, #00E5FF, #3B82F6, #A855F7);
+  text-align: center;
+  font-size: 24px;
+  font-weight: bold;
+}
+
+#videoContainer {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #000;
+}
+
+video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+#footer {
+  padding: 15px;
+  background: #111;
+  text-align: center;
+}
+
+#actual {
+  font-size: 22px;
+  font-weight: bold;
+}
+
+#siguiente {
+  margin-top: 10px;
+  color: #aaa;
+}
+</style>
+</head>
+<body>
+
+<div id="header">🎵 PlayBar Go</div>
+
+<div id="videoContainer">
+  <video id="player" controls autoplay></video>
+</div>
+
+<div id="footer">
+  <div id="actual">Cargando...</div>
+  <div id="siguiente"></div>
+</div>
+
+<script>
+const BACKEND = "https://tu-backend.up.railway.app";
+
+const player = document.getElementById("player");
+const actual = document.getElementById("actual");
+const siguiente = document.getElementById("siguiente");
+
+let currentVideoId = null;
+
+function obtenerCliente() {
+  const partes = window.location.pathname.split("/");
+  return partes[partes.length - 1] || "A33";
+}
+
+const cliente = obtenerCliente();
+
+async function actualizarEstado() {
+  try {
+    const res = await fetch(${BACKEND}/player/status?cliente=${cliente});
+    const data = await res.json();
+
+    if (!data.ok) return;
+
+    actual.textContent = "🎵 " + (data.actual?.titulo || "Sin reproducción");
+
+    if (data.siguiente?.titulo) {
+      siguiente.textContent = "⏭️ Próxima: " + data.siguiente.titulo;
+    } else {
+      siguiente.textContent = "";
+    }
+
+    if (data.actual && data.actual.video_url && data.actual.videoId !== currentVideoId) {
+      currentVideoId = data.actual.videoId;
+      player.src = data.actual.video_url;
+      await player.play().catch(() => {});
+    }
+
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+player.addEventListener("ended", async () => {
+  try {
+    await fetch(${BACKEND}/player/ended, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ cliente })
+    });
+  } catch (error) {
+    console.error(error);
+  }
+
+  setTimeout(actualizarEstado, 1000);
+});
+
+setInterval(actualizarEstado, 5000);
+actualizarEstado();
+</script>
+
+</body>
+</html>
