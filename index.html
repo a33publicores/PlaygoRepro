@@ -56,10 +56,11 @@ const estado = document.getElementById("estado");
 
 let videoActual = "";
 
+// Cargar canción actual
 async function cargarEstado() {
     try {
         const response = await fetch(
-            API_URL + "/player/status?cliente=" + CLIENTE
+            ${API_URL}/player/status?cliente=${CLIENTE}
         );
 
         const data = await response.json();
@@ -77,24 +78,26 @@ async function cargarEstado() {
         const actual = data.actual;
         const id = actual.videoId || "";
 
+        // Solo cargar si es un video diferente
         if (id !== videoActual) {
             videoActual = id;
 
             estado.textContent =
                 actual.titulo || "Reproduciendo...";
 
-video.src = actual.video_url;
-video.load();
+            video.src = actual.video_url;
+            video.load();
 
-video.muted = false;
-video.defaultMuted = false;
-video.volume = 1;
+            // Activar sonido
+            video.muted = false;
+            video.defaultMuted = false;
+            video.volume = 1;
 
-try {
-    await video.play();
-} catch (err) {
-    console.log("Autoplay bloqueado:", err);
-}
+            try {
+                await video.play();
+            } catch (err) {
+                console.log("Autoplay bloqueado:", err);
+            }
         }
     } catch (err) {
         console.error(err);
@@ -102,6 +105,7 @@ try {
     }
 }
 
+// Cuando termina el video
 video.addEventListener("ended", async () => {
     try {
         await fetch(${API_URL}/player/next, {
@@ -114,10 +118,10 @@ video.addEventListener("ended", async () => {
             })
         });
     } catch (e) {
-        console.error("Error al finalizar:", e);
+        console.error("Error al pasar a la siguiente canción:", e);
     }
 
-    // Cargar la siguiente canción después de 2 segundos
+    // Esperar 2 segundos y cargar la siguiente
     setTimeout(() => {
         video.muted = false;
         video.volume = 1;
@@ -125,8 +129,23 @@ video.addEventListener("ended", async () => {
     }, 2000);
 });
 
+// Revisar cada 5 segundos si hay un nuevo video
 setInterval(cargarEstado, 5000);
+
+// Primera carga
 cargarEstado();
+
+// Si el navegador bloquea el audio, el primer clic lo activa
+document.addEventListener("click", async () => {
+    video.muted = false;
+    video.volume = 1;
+
+    try {
+        await video.play();
+    } catch (e) {
+        console.log("No se pudo activar audio:", e);
+    }
+}, { once: true });
 </script>
 
 </body>
