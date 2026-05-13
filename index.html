@@ -103,6 +103,25 @@ html, body {
         height: 65vh;
     }
 }
+
+    .thumb {
+    width: 120px;
+    height: 68px;
+    object-fit: cover;
+    border-radius: 8px;
+    flex-shrink: 0;
+}
+
+.info {
+    flex: 1;
+    min-width: 0;
+}
+
+.estado-item {
+    margin-top: 6px;
+    font-size: 12px;
+    opacity: 0.7;
+}
 </style>
 </head>
 <body>
@@ -243,21 +262,37 @@ function renderPlaylist(data) {
 
     // Canción actual
     html += `
-        <div class="playlist-item actual">
-            <div class="titulo">▶️ ${data.actual.titulo || 'Reproduciendo...'}</div>
-            <div class="estado">En reproducción</div>
+    <div class="playlist-item actual">
+        <img
+            src="https://img.youtube.com/vi/${data.actual.videoId}/hqdefault.jpg"
+            class="thumb"
+        >
+        <div class="info">
+            <div class="titulo">
+                ▶️ ${data.actual.titulo || 'Reproduciendo...'}
+            </div>
+            <div class="estado-item">En reproducción</div>
         </div>
-    `;
+    </div>
+`;
 
     // Siguiente canción
     if (data.siguiente) {
-        html += `
-            <div class="playlist-item">
-                <div class="titulo">⏭️ ${data.siguiente.titulo || 'Siguiente'}</div>
-                <div class="estado">En cola</div>
+    html += `
+        <div class="playlist-item">
+            <img
+                src="https://img.youtube.com/vi/${data.siguiente.videoId}/hqdefault.jpg"
+                class="thumb"
+            >
+            <div class="info">
+                <div class="titulo">
+                    ⏭️ ${data.siguiente.titulo || 'Siguiente'}
+                </div>
+                <div class="estado-item">En cola</div>
             </div>
-        `;
-    }
+        </div>
+    `;
+}
 
     playlistItems.innerHTML = html;
 }
