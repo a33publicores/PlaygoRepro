@@ -100,7 +100,11 @@ async function cargarEstado() {
 }
 
 video.addEventListener("ended", async function () {
+    estado.textContent = "Cargando siguiente canción...";
+    videoActual = "";   // Fuerza a detectar un nuevo video
+
     try {
+        // Notifica al backend que debe avanzar
         await fetch(
             API_URL + "/player/next?cliente=" + CLIENTE,
             {
@@ -111,7 +115,10 @@ video.addEventListener("ended", async function () {
         console.error("Error avanzando:", err);
     }
 
-    setTimeout(cargarEstado, 1000);
+    // Espera 3 segundos para que el backend procese
+    setTimeout(async function () {
+        await cargarEstado();
+    }, 3000);
 });
 
 setInterval(cargarEstado, 5000);
