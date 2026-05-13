@@ -86,7 +86,9 @@ async function cargarEstado() {
             video.src = actual.video_url;
             video.load();
             video.muted=false;
+            video.defaultMuted=false;
             video.volume=1;
+            video.controls=true
 
             try {
                 await video.play();
@@ -121,6 +123,18 @@ video.addEventListener("ended", async function () {
         await cargarEstado();
     }, 3000);
 });
+
+    document.addEventListener("click", async function () {
+    video.muted = false;
+    video.defaultMuted = false;
+    video.volume = 1;
+
+    try {
+        await video.play();
+    } catch (e) {
+        console.log("No se pudo activar el audio:", e);
+    }
+}, { once: true });
 
 setInterval(cargarEstado, 5000);
 cargarEstado();
