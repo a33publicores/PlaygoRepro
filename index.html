@@ -83,16 +83,18 @@ async function cargarEstado() {
             estado.textContent =
                 actual.titulo || "Reproduciendo...";
 
-            video.src = actual.video_url;
-            video.load();
-            video.muted=false;
-            video.volume=1;
+video.src = actual.video_url;
+video.load();
 
-            try {
-                await video.play();
-            } catch (err) {
-                console.log("Autoplay bloqueado:", err);
-            }
+video.muted = false;
+video.defaultMuted = false;
+video.volume = 1;
+
+try {
+    await video.play();
+} catch (err) {
+    console.log("Autoplay bloqueado:", err);
+}
         }
     } catch (err) {
         console.error(err);
@@ -102,7 +104,7 @@ async function cargarEstado() {
 
 video.addEventListener("ended", async () => {
     try {
-        await fetch(${API_URL}/player/finalizar, {
+        await fetch(${API_URL}/player/next, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
@@ -115,9 +117,11 @@ video.addEventListener("ended", async () => {
         console.error("Error al finalizar:", e);
     }
 
-    // Esperar un momento y cargar la siguiente canción
+    // Cargar la siguiente canción después de 2 segundos
     setTimeout(() => {
-        cargarCancion();
+        video.muted = false;
+        video.volume = 1;
+        cargarEstado();
     }, 2000);
 });
 
