@@ -277,27 +277,29 @@ function renderPlaylist(data) {
 `;
 
     // Siguiente canción
-    if (data.siguiente) {
-    html += `
-        <div class="playlist-item">
-            <img
-                src="https://img.youtube.com/vi/${data.siguiente.videoId}/hqdefault.jpg"
-                class="thumb"
-            >
-            <div class="info">
-                <div class="titulo">
-                    ⏭️ ${data.siguiente.titulo || 'Siguiente'}
+    if (data.cola && data.cola.length > 0) {
+    data.cola.forEach((item, index) => {
+        html += `
+            <div class="playlist-item">
+                <img
+                    src="https://img.youtube.com/vi/${item.videoId}/hqdefault.jpg"
+                    class="thumb"
+                >
+                <div class="info">
+                    <div class="titulo">
+                        ${index + 1}. ${item.titulo}
+                    </div>
+                    <div class="estado-item">En cola</div>
                 </div>
-                <div class="estado-item">En cola</div>
             </div>
-        </div>
-    `;
+        `;
+    });
 }
 
     playlistItems.innerHTML = html;
 }
 
-setInterval(cargarEstado, 15000);
+setInterval(cargarEstado, 5000);
 cargarEstado();
 </script>
 
