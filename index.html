@@ -84,21 +84,33 @@ async function cargarEstado() {
                 actual.titulo || "Reproduciendo...";
 
             video.src = actual.video_url;
-            video.load();
+video.load();
 
-            video.removeAttribute("muted");
+video.controls = true;
+video.volume = 1.0;
+
+// Primero inicia silenciado para que el autoplay sea permitido
+video.muted = true;
+
+try {
+    await video.play();
+
+    // Después de iniciar, activar el sonido
+    setTimeout(async () => {
+        try {
             video.muted = false;
             video.defaultMuted = false;
+            video.removeAttribute("muted");
             video.volume = 1.0;
-            video.controls = true;
+            await video.play();
+        } catch (e) {
+            console.log("No se pudo activar el sonido automáticamente:", e);
+        }
+    }, 500);
 
-            video.setAttribute("autoplay", "true");
-
-            try {
-                await video.play();
-            } catch (err) {
-                console.log("Autoplay bloqueado:", err);
-            }
+} catch (err) {
+    console.log("Autoplay bloqueado:", err);
+}
         }
     } catch (err) {
         console.error(err);
