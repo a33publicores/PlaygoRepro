@@ -303,9 +303,10 @@ html += `
             <div class="estado">En reproducción</div>
 
             <div class="acciones">
-                <button class="btn-accion" onclick="accionPlaylist('repetir', 0)">🔁</button>
-                <button class="btn-accion" onclick="accionPlaylist('eliminar', 0)">🗑️</button>
-            </div>
+    <button class="btn-accion" onclick="accionPlaylist('anterior', 0)">⏮️</button>
+    <button class="btn-accion" onclick="accionPlaylist('siguiente', 0)">⏭️</button>
+    <button class="btn-accion" onclick="accionPlaylist('eliminar', 0)">🗑️</button>
+</div>
         </div>
     </div>
 `;
@@ -328,10 +329,6 @@ html += `
 
                 <button class="btn-accion"
                     onclick="accionPlaylist('bajar', ${index + 1})">⬇️</button>
-
-                <button class="btn-accion"
-                    onclick="accionPlaylist('repetir', ${index + 1})">🔁</button>
-
                 <button class="btn-accion"
                     onclick="accionPlaylist('eliminar', ${index + 1})">🗑️</button>
             </div>
