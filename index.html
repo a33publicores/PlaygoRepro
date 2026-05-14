@@ -46,9 +46,14 @@ html, body {
 #playlist h2 {
     margin: 0;
     padding: 18px 20px;
-    font-size: 20px;
-    background: #1c1c1c;
-    border-bottom: 1px solid rgba(255,255,255,0.1);
+    font-size: 22px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    color: #ffffff;
+    background: linear-gradient(135deg, #161616, #262626);
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.25);
 }
 
 .playlist-item {
@@ -218,10 +223,27 @@ html, body {
     transform: scale(0.95);
 }
 
-    .logo-header,
+    .logo-header {
+    width: 52px;
+    height: 52px;
+    object-fit: contain;
+    margin-right: 14px;
+    border-radius: 10px;
+    flex-shrink: 0;
+},
 #logo-watermark {
-    display: block;
-    background: transparent;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 220px;
+    max-width: 22vw;
+    max-height: 220px;
+    object-fit: contain;
+    z-index: 9998;
+    opacity: 0.18;
+    filter: drop-shadow(0 8px 24px rgba(0,0,0,0.6));
+    pointer-events: none;
 }
 </style>
 </head>
