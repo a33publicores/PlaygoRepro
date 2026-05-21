@@ -27,11 +27,16 @@ html, body {
     flex: 1;
     position: relative;
     background: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
 }
 
 #video {
     width: 100%;
-    height: 100%;
+    height: calc(100vh - 10px);
+    object-fit: contain;
     background: #000;
 }
 
@@ -120,14 +125,14 @@ html, body {
 
     #playlist {
         width: 100%;
-        height: 35vh;
+        height: 40vh;
         border-left: none;
         border-top: 1px solid rgba(255,255,255,0.1);
     }
 
     #video-container {
-        height: 65vh;
-    }
+    height: 60vh;
+}
 }
 
     .thumb {
@@ -230,7 +235,7 @@ html, body {
     margin-right: 14px;
     border-radius: 10px;
     flex-shrink: 0;
-},
+}
 #logo-watermark {
     position: absolute;
     top: 50%;
@@ -253,10 +258,9 @@ html, body {
 
     <div id="video-container">
     <img
-            src="https://drive.google.com/thumbnail?id=1D8_YN-_Ro5ldLSzgK-QDClR6WHLRKjYr&sz=w1000"
-            class="logo-header"
-            alt="PlayBar Go">
-        alt="PlayBar Go">
+    src="https://drive.google.com/thumbnail?id=1D8_YN-_Ro5ldLSzgK-QDClR6WHLRKjYr&sz=w1000"
+    class="logo-header"
+    alt="PlayBar Go">
 
     <div id="estado">Cargando...</div>
 
